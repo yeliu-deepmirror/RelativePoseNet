@@ -81,6 +81,14 @@ echo "Container [$NAME] has been created"
 
 # Add current user and group inside the container.
 if [[ "$USER" != "root" ]]; then
+  if ! docker exec $NAME bash -c "command -v sudo >/dev/null"; then
+    echo "Install sudo command inside the container ..."
+    docker exec -it $NAME bash -c "set -ex
+    chmod -v 777 /tmp
+    apt update
+    apt install -y sudo"
+    echo "Done"
+  fi
   echo "Adding user [$USER] inside the container ..."
   docker cp $DIR/docker_adduser.sh $NAME:/tmp
   docker exec \
@@ -101,8 +109,7 @@ if [[ -f ~/.bash_local ]]; then
   . ~/.bash_local
 fi
 ' >> $DOCKER_HOME/.bashrc"
-
-BASH_LOCAL=$DIR/docker_bashrc.sh
+BASH_LOCAL=${BASH_LOCAL:-$DIR/docker_bashrc.sh}
 if [[ -f $BASH_LOCAL ]]; then
   echo "Adding bash config [$BASH_LOCAL] inside the container ..."
   docker cp $BASH_LOCAL $NAME:$DOCKER_HOME/.bash_local

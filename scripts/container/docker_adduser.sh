@@ -3,12 +3,14 @@
 set -e
 
 # Add a group to the system.
-addgroup --gid "$DOCKER_GRP_ID" "$DOCKER_GRP"
+getent group "$DOCKER_GRP_ID" &>/dev/null ||
+  addgroup --gid "$DOCKER_GRP_ID" "$DOCKER_GRP"
 # Add a user to the system.
-adduser "$DOCKER_USER" \
-  --uid "$DOCKER_USER_ID" --gid "$DOCKER_GRP_ID" \
-  --disabled-password --force-badname --gecos '' \
-  2>/dev/null
+id "$DOCKER_USER_ID" &>/dev/null ||
+  adduser "$DOCKER_USER" \
+    --uid "$DOCKER_USER_ID" --gid "$DOCKER_GRP_ID" \
+    --disabled-password --force-badname --gecos '' \
+    2>/dev/null
 # Copy the default configuration files for the user.
 # This step is skipped in `adduser` since we already have the home directory
 # for the cache path mounted when we created the container.

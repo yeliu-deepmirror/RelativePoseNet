@@ -2,14 +2,6 @@
 #
 # Run commands in a running container.
 # Without any arguments to keep interactive.
-#
-# Example:
-#   Get inside the default container:
-#     $ ./exec_container.sh
-#   Get inside [test] container:
-#     $ ./exec_container.sh test
-#   Run `bazel test //common/time:time_test` without get inside the container:
-#     $ ./exec_container.sh -- bazel test //common/time:time_test
 
 set -e
 
@@ -40,7 +32,7 @@ WORK_DIR_IN_CONTAINER=${WORK_DIR_IN_CONTAINER:-/$(basename $REPO_DIR)}
 
 # Check if the container exists.
 if ! docker ps -a --format "{{.Names}}" | grep -q "^$NAME$"; then
-  echo "Container [$NAME] does not exist"
+  echo >&2 "Container [$NAME] does not exist"
   exit 1
 fi
 # Check if the container is running.
@@ -49,30 +41,44 @@ if ! docker ps --format "{{.Names}}" | grep -q "^$NAME$"; then
   docker start $NAME >/dev/null
 fi
 
-echo "Execute container [$NAME]"
+echo "Execute container [$NAME] ..."
 
 # Allow docker to connect to the X server.
-xhost +local:docker >/dev/null
+xhost +local:docker &>/dev/null || true
 
-if [[ $# -gt 1 ]]; then
-  # Execute command ${*:2}.
+function cleanup() {
   # NOTE: Kill `docker exec` command will not terminate the spawned process.
   # Check https://github.com/moby/moby/issues/9098.
-  docker exec \
+
+  # Escape the command string.
+  local cmd=$(echo "${*}" | sed 's/[]\/$*+.^[]/\\&/g')
+  # Kill if still running.
+  if (($#)) && docker exec $NAME bash -c "pgrep -af '$cmd'"; then
+    echo "Kill running processes by pattern: $cmd"
+    docker exec $NAME bash -c "pkill -ef '$cmd'"
+  fi
+
+  # Disallow docker to connect to the X server.
+  xhost -local:docker &>/dev/null || true
+}
+trap "cleanup ${*}" EXIT
+
+echo $DOCKER_USER
+
+if (($#)); then
+  echo "Executing bash command '${*}' inside container [$NAME] ..."
+  docker exec -t \
     -u $USER \
-    -e USER \
+    -e USER=$USER \
     -e HISTFILE=$WORK_DIR_IN_CONTAINER/.${NAME}_bash_history \
     $NAME \
-    /bin/bash -c ". ~/.bash_local; ${*:2}"
+    /bin/bash -ic "${*}"
 else
-  # Get inside the container.
+  echo "Executing an interactive bash shell inside container [$NAME] ..."
   docker exec -it \
     -u $USER \
-    -e USER \
+    -e USER=$USER \
     -e HISTFILE=$WORK_DIR_IN_CONTAINER/.${NAME}_bash_history \
     $NAME \
     /bin/bash
 fi
-
-# Disallow docker to connect to the X server.
-xhost -local:docker >/dev/null

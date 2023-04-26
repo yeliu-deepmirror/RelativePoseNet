@@ -25,6 +25,9 @@ TorchData = Union[Dict[str, torch.Tensor], Sequence[torch.Tensor], torch.Tensor]
 
 class MNistTrial(PyTorchTrial):
     def __init__(self, context: PyTorchTrialContext) -> None:
+        # Initialize the trial class and wrap the models, optimizers, and LR schedulers.
+
+        # Store trial context for later use.
         self.context = context
 
         # Create a unique download directory for each rank so they don't overwrite each
@@ -32,6 +35,7 @@ class MNistTrial(PyTorchTrial):
         self.download_directory = f"/tmp/data-rank{self.context.distributed.get_rank()}"
         self.data_downloaded = False
 
+        # Initialize the model and wrap it using self.context.wrap_model().
         self.model = self.context.wrap_model(nn.Sequential(
             nn.Conv2d(1, self.context.get_hparam("n_filters1"), 3, 1),
             nn.ReLU(),
@@ -49,6 +53,7 @@ class MNistTrial(PyTorchTrial):
             nn.LogSoftmax(),
         ))
 
+        # Initialize the optimizer and wrap it using self.context.wrap_optimizer().
         self.optimizer = self.context.wrap_optimizer(torch.optim.Adadelta(
             self.model.parameters(), lr=self.context.get_hparam("learning_rate"))
         )
@@ -81,12 +86,16 @@ class MNistTrial(PyTorchTrial):
         batch = cast(Tuple[torch.Tensor, torch.Tensor], batch)
         data, labels = batch
 
+        # Define the training forward pass and calculate loss.
         output = self.model(data)
         loss = torch.nn.functional.nll_loss(output, labels)
 
+        # Define the training backward pass and step the optimizer.
         self.context.backward(loss)
         self.context.step_optimizer(self.optimizer)
 
+        # return a dictionary with user-defined training metrics
+        # Determined will automatically average all the metrics across batches.
         return {"loss": loss}
 
     def evaluate_batch(self, batch: TorchData) -> Dict[str, Any]:
