@@ -23,6 +23,7 @@ class RelativePoseDataset(torch.utils.data.Dataset):
         self.data_folder = data_folder
         file = open(pickle_path, 'rb')
         self.all_data_pairs = pickle.load(file)
+        logger.info("load %d pairs" % len(self.all_data_pairs))
         self.resize_ratio = float(resize_ratio)
 
     def __len__(self):
@@ -43,8 +44,11 @@ class RelativePoseDataset(torch.utils.data.Dataset):
 
         image_1 = self.get_image(os.path.join(self.data_folder, data_pair.camera_path_1))
         image_2 = self.get_image(os.path.join(self.data_folder, data_pair.camera_path_2))
-        param_1 = self.resize_ratio * math_utils.intrinsics_matrix_to_param(data_pair.intrinsics_1);
-        param_2 = self.resize_ratio * math_utils.intrinsics_matrix_to_param(data_pair.intrinsics_2);
+
+        # add a factor to intrinsics to make them close to 1
+        factor_param = self.resize_ratio / 1000.0
+        param_1 = factor_param * math_utils.intrinsics_matrix_to_param(data_pair.intrinsics_1);
+        param_2 = factor_param * math_utils.intrinsics_matrix_to_param(data_pair.intrinsics_2);
 
         # get relative pose array: rotation to quaternion, translation will be normalized
         # rescale qvec by factor of 10

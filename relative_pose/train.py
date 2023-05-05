@@ -31,13 +31,16 @@ def fetch_optimizer(args, model):
 
 
 def pose_loss(pose_preds, pose_gt):
-    loss = (pose_preds - pose_gt).abs().mean()
+    loss_abs = (pose_preds - pose_gt).abs()
+    loss_mean = loss_abs.mean()
+    loss_mean_array = loss_abs.mean(0)
 
     metrics = {
-        'loss': loss,
+        'loss_mean': loss_mean.item(),
+        'loss_position': loss_mean_array[0:3].sum().item(),
+        'loss_rotation': loss_mean_array[3:-1].sum().item(),
     }
-
-    return loss, metrics
+    return loss_mean, metrics
 
 
 class Logger:
@@ -103,10 +106,12 @@ def _optimizer_to(self, device):
 
 
 def train(args):
-    model = nn.DataParallel(RelativePoseNet())
+    dropout = 0.5
+    model = nn.DataParallel(RelativePoseNet(dropout))
     logger.info("Parameter Count: %d" % count_parameters(model))
 
     if args.restore_ckpt is not None:
+        logger.info("load model from : %s" % args.restore_ckpt)
         model.load_state_dict(torch.load(args.restore_ckpt), strict=False)
 
     model.cuda()
@@ -154,6 +159,7 @@ def train(args):
 
                 # check validation result
                 results = {}
+                logger_train.write_dict(results)
 
             # clear memory
             del image1
@@ -181,14 +187,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--images_folder', help='path to input model folder - to read images')
     parser.add_argument('--pair_pickle', help='path to output folder - to read pairs pickle')
-    parser.add_argument('--resize_ratio', type=float, default=0.5)
+    parser.add_argument('--resize_ratio', type=float, default=0.25)
 
     parser.add_argument('--name', default='raft', help="name your experiment")
     parser.add_argument('--restore_ckpt', help="restore checkpoint")
 
     parser.add_argument('--lr', type=float, default=0.00002)
     parser.add_argument('--num_steps', type=int, default=100000)
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=10)
     parser.add_argument('--gpus', type=int, nargs='+', default=[0,1])
     parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
 
