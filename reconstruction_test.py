@@ -38,12 +38,15 @@ def reconstruction_test(args):
     logger.info("Find %d images" % len(image_paths))
 
     # load model
-    model = RelativePoseNet().cuda()
+    model = torch.nn.DataParallel(RelativePoseNet())
+    # model = RelativePoseNet()
     logger.info("load model from : %s" % args.model_path)
     model.load_state_dict(torch.load(args.model_path), strict=False)
+    model.cuda()
+    model.eval()
 
     # process sequence match with the images
-    num_match_neighbor = 10
+    num_match_neighbor = 5
     resize_ratio = 0.25
     matches = {}
 
@@ -100,6 +103,7 @@ def reconstruction_test(args):
     ax = plt.axes(projection='3d')
     for i in range(len(rotations)):
         plot_camera(rotations[i], translations[i], ax, 1.0)
+    ax.axis('equal')
     plt.show()
 
 

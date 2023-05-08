@@ -156,13 +156,15 @@ def translation_averaging_test():
 
 
 def plot_camera(rotation, translation, ax, cam_size = 0.1):
+    width = cam_size
+    height = 0.75 * cam_size
     def transform_pt(point):
         return rotation.rotate(point) + translation
     pt_o = transform_pt(Point3(0, 0, 0))
-    pt_1 = transform_pt(Point3(cam_size, cam_size, cam_size))
-    pt_2 = transform_pt(Point3(-cam_size, cam_size, cam_size))
-    pt_3 = transform_pt(Point3(-cam_size, -cam_size, cam_size))
-    pt_4 = transform_pt(Point3(cam_size, -cam_size, cam_size))
+    pt_1 = transform_pt(Point3(width, height, cam_size))
+    pt_2 = transform_pt(Point3(-width, height, cam_size))
+    pt_3 = transform_pt(Point3(-width, -height, cam_size))
+    pt_4 = transform_pt(Point3(width, -height, cam_size))
 
     color = np.random.rand(3)
     def get_axis(axis):
