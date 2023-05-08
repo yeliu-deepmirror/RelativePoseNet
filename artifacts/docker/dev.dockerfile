@@ -32,6 +32,7 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     pose-transform==0.3.1 \
     setuptools==59.5.0 \
     accelerate==0.12.0 \
+    gtsam==4.2a8 \
     pycocotools==2.0.6
 
 RUN pip install -i  https://developer.download.nvidia.com/compute/redist \

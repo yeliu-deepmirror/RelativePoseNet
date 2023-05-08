@@ -42,3 +42,12 @@ tensorboard --logdir=runs
 Parameter Count: 1624711. Train with 34127 pairs.
 
 ![image](artifacts/rp.jpg)
+
+
+## reconstruction test
+
+```
+python reconstruction_test.py \
+/mnt/gz01/experiment/liuye/relative_pose/20220726T162250+0800_xvnxa_xvnxa001_gzns_2jmw2/colmap/images/camera_front \
+/RelativePoseNet/checkpoints/100000_raft.pth
+```
