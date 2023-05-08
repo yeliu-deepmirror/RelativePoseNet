@@ -9,13 +9,14 @@ class RelativePoseNet(nn.Module):
     def __init__(self, dropout=0.0, feature_dim=128):
         super(RelativePoseNet, self).__init__()
         self.fnet = SmallEncoder(output_dim=feature_dim, norm_fn='instance', dropout=dropout)
-
-        self.corr_radius = 3
         features_dim = feature_dim * 2
         self.features_process = nn.Sequential(
             nn.Conv2d(features_dim, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
             nn.Conv2d(128, 64, kernel_size=3, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 64, kernel_size=3, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(64, 32, kernel_size=3, padding=2),
@@ -24,7 +25,9 @@ class RelativePoseNet(nn.Module):
         )
         self.average_pool = nn.AdaptiveAvgPool2d((6, 6))
         self.pose_estimator = nn.Sequential(
-            nn.Linear(32 * 6 * 6 + 8, 512),
+            nn.Linear(32 * 6 * 6 + 8, 1024),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
             nn.Linear(512, 128),
             nn.ReLU(inplace=True),
