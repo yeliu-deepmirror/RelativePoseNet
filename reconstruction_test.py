@@ -61,6 +61,7 @@ def reconstruction_test(args):
             image_2 = get_image(image_paths[id_2], resize_ratio)
             output = model(image_1, param_intri, image_2, param_intri).cpu().detach().numpy()
             matches[(id_1, id_2)] = output[0]
+            # logger.info(f"{id_1} {id_2} {output[0]}")
 
             # clean cache
             del image_1
