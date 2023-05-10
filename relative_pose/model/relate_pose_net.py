@@ -10,22 +10,42 @@ class RelativePoseNet(nn.Module):
         super(RelativePoseNet, self).__init__()
         self.fnet = SmallEncoder(output_dim=feature_dim, norm_fn='instance', dropout=dropout)
         features_dim = feature_dim * 2
-        self.features_process = nn.Sequential(
+        average_size = 3
+        self.features_process_l1 = nn.Sequential(
             nn.Conv2d(features_dim, 128, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
+        )
+        self.features_process_l1_post = nn.Sequential(
+            nn.Conv2d(128, 32, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.AdaptiveAvgPool2d((average_size, average_size)),
+            nn.Flatten(1, -1),
+        )
+        self.features_process_l2 = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=3, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.features_process_l2_post = nn.Sequential(
+            nn.Conv2d(64, 32, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.AdaptiveAvgPool2d((average_size, average_size)),
+            nn.Flatten(1, -1),
+        )
+        self.features_process_l3 = nn.Sequential(
             nn.Conv2d(64, 64, kernel_size=3, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
             nn.Conv2d(64, 32, kernel_size=3, padding=2),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.AdaptiveAvgPool2d((average_size, average_size)),
+            nn.Flatten(1, -1),
         )
-        self.average_pool = nn.AdaptiveAvgPool2d((6, 6))
         self.pose_estimator = nn.Sequential(
-            nn.Linear(32 * 6 * 6 + 8, 1024),
+            nn.Linear(32 * average_size * average_size * 3 + 8, 1024),
             nn.ReLU(inplace=True),
             nn.Linear(1024, 512),
             nn.ReLU(inplace=True),
@@ -47,12 +67,16 @@ class RelativePoseNet(nn.Module):
 
         # concate the features
         features = torch.cat((fmap1, fmap2), 1)
-        features = self.features_process(features)
-        features = self.average_pool(features)
-        features = torch.flatten(features, 1)
+        features = self.features_process_l1(features)
+        features_l1 = self.features_process_l1_post(features)
+
+        features = self.features_process_l2(features)
+        features_l2 = self.features_process_l2_post(features)
+
+        features_l3 = self.features_process_l3(features)
 
         # add intrinsics and regress to pose
-        features = torch.cat((features, param1, param2), 1)
+        features = torch.cat((features_l1, features_l2, features_l3, param1, param2), 1)
         pose = self.pose_estimator(features)
 
         return pose
