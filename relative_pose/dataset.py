@@ -107,7 +107,7 @@ def get_relative_pose_and_intrinsics(images, cameras, image_id1, image_id2):
 def prepare_pairs(session_folder,
                   model_folder = "/colmap/sparse/",
                   images_folder = "/colmap/images/",
-                  overlap_interval = [0.1, 0.7]):
+                  overlap_interval = [0.2, 0.99]):
     # create image pairs from colmap model
 
     # load colmap model

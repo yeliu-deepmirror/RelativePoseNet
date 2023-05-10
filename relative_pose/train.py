@@ -106,8 +106,7 @@ def _optimizer_to(self, device):
 
 
 def train(args):
-    dropout = 0.5
-    model = nn.DataParallel(RelativePoseNet(dropout))
+    model = nn.DataParallel(RelativePoseNet(args.dropout))
     logger.info("Parameter Count: %d" % count_parameters(model))
 
     if args.restore_ckpt is not None:
@@ -188,12 +187,13 @@ if __name__ == "__main__":
     parser.add_argument('--images_folder', help='path to input model folder - to read images')
     parser.add_argument('--pair_pickle', help='path to output folder - to read pairs pickle')
     parser.add_argument('--resize_ratio', type=float, default=0.25)
+    parser.add_argument('--dropout', type=float, default=0.6)
 
     parser.add_argument('--name', default='raft', help="name your experiment")
     parser.add_argument('--restore_ckpt', help="restore checkpoint")
 
     parser.add_argument('--lr', type=float, default=0.00002)
-    parser.add_argument('--num_steps', type=int, default=100000)
+    parser.add_argument('--num_steps', type=int, default=200000)
     parser.add_argument('--batch_size', type=int, default=10)
     parser.add_argument('--gpus', type=int, nargs='+', default=[0,1])
     parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
